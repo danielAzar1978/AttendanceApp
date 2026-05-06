@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Location from 'expo-location';
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Text, TouchableOpacity, View } from 'react-native';
@@ -24,6 +25,14 @@ export default function Index() {
 }, []);
 
 const handlePress = async (type: string) => {
+  const { status } = await Location.requestForegroundPermissionsAsync();
+
+if (status !== 'granted') {
+  setMessage('אין הרשאת מיקום');
+  return;
+}
+let latitude = 31.7683;
+let longitude = 35.2137;
   const now = new Date();
   const date = now.toLocaleDateString();
   const time = now.toLocaleTimeString();
@@ -31,6 +40,8 @@ const handlePress = async (type: string) => {
   const newRecord: RecordItem = {
     type,
     text: `${type} בתאריך ${date} בשעה ${time}`,
+    latitude,
+    longitude,
   };
 
   const updatedRecords = [newRecord, ...records];
@@ -39,7 +50,10 @@ const handlePress = async (type: string) => {
 
   // שמירה במכשיר
   await AsyncStorage.setItem('records', JSON.stringify(updatedRecords));
-  setMessage(`${type} נשמרה בהצלחה בתאריך ${date} בשעה ${time}`);
+  setMessage(
+  `${type} נשמרה בהצלחה בתאריך ${date} בשעה ${time}
+מיקום: ${latitude}, ${longitude}`
+);
 };
 
   return (

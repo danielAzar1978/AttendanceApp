@@ -6,6 +6,8 @@ import { FlatList, Text, TouchableOpacity, View } from 'react-native';
 type RecordItem = {
   type: string;
   text: string;
+  latitude: number;
+  longitude: number;
 };
 
 export default function History() {
@@ -28,6 +30,7 @@ export default function History() {
       <Text style={{ fontSize: 24, textAlign: 'center', fontWeight: 'bold' }}>
         היסטוריית החתמות
       </Text>
+      
 
       <TouchableOpacity
         style={{ backgroundColor: 'gray', padding: 15, borderRadius: 10 }}
@@ -56,6 +59,9 @@ export default function History() {
               }}
             >
               {item.text}
+              <Text style={{ textAlign: 'right', fontSize: 13, color: '#555' }}>
+  מיקום: {item.latitude}, {item.longitude}
+</Text>
             </Text>
           </View>
         )}
