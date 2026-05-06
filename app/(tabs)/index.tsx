@@ -4,9 +4,12 @@ import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Text, TouchableOpacity, View } from 'react-native';
 
+
 type RecordItem = {
   type: string;
   text: string;
+  latitude: number;
+  longitude: number;
 };
 
 export default function Index() {
@@ -55,6 +58,11 @@ let longitude = 35.2137;
 מיקום: ${latitude}, ${longitude}`
 );
 };
+const handleLogout = async () => {
+  await AsyncStorage.removeItem('isLoggedIn');
+
+  router.replace('/login');
+};
 
   return (
     <View style={{ flex: 1, padding: 20, gap: 12 }}>
@@ -86,7 +94,14 @@ let longitude = 35.2137;
   {message}
 </Text>
 
-  
+  <TouchableOpacity
+  style={{ backgroundColor: 'black', padding: 15, borderRadius: 10 }}
+  onPress={handleLogout}
+>
+  <Text style={{ color: 'white', textAlign: 'center' }}>
+    התנתק
+  </Text>
+</TouchableOpacity>
 
      
     </View>
