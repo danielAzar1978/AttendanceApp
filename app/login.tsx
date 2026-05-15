@@ -1,28 +1,47 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { router } from 'expo-router';
-import { useState } from 'react';
-import { Text, TextInput, TouchableOpacity, View } from 'react-native';
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { router } from "expo-router";
+import { useState } from "react";
+import { Text, TextInput, TouchableOpacity, View } from "react-native";
 
 export default function Login() {
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
 
-const handleLogin = async () => {
- if (username === 'admin' && password === '1234') {
-  setError('');
+  const handleLogin = async () => {
+    try {
+      const response = await fetch("http://10.0.0.3:5146/api/auth/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          username,
+          password,
+        }),
+      });
 
-  await AsyncStorage.setItem('isLoggedIn', 'true');
+      if (response.ok) {
+        const data = await response.json();
 
-  router.replace('/(tabs)');
-} else {
-    setError('שם משתמש או סיסמה שגויים');
-  }
-};
+        setError("");
 
+        await AsyncStorage.setItem("isLoggedIn", "true");
+        await AsyncStorage.setItem("name", data.name);
+        await AsyncStorage.setItem("userId", data.userId.toString());
+
+        router.replace("/(tabs)");
+      } else {
+        setError("שם משתמש או סיסמה שגויים");
+      }
+    } catch (error) {
+      console.log(error);
+      setError("שגיאה בחיבור לשרת");
+    }
+  };
   return (
-    <View style={{ flex: 1, justifyContent: 'center', padding: 20, gap: 12 }}>
-      <Text style={{ fontSize: 28, textAlign: 'center', fontWeight: 'bold' }}>
+    <View style={{ flex: 1, justifyContent: "center", padding: 20, gap: 12 }}>
+      <Text style={{ fontSize: 28, textAlign: "center", fontWeight: "bold" }}>
         התחברות
       </Text>
 
@@ -32,7 +51,7 @@ const handleLogin = async () => {
         onChangeText={setUsername}
         style={{
           borderWidth: 1,
-          borderColor: '#ccc',
+          borderColor: "#ccc",
           padding: 12,
           borderRadius: 8,
         }}
@@ -45,7 +64,7 @@ const handleLogin = async () => {
         onChangeText={setPassword}
         style={{
           borderWidth: 1,
-          borderColor: '#ccc',
+          borderColor: "#ccc",
           padding: 12,
           borderRadius: 8,
         }}
@@ -53,19 +72,17 @@ const handleLogin = async () => {
 
       <TouchableOpacity
         style={{
-          backgroundColor: 'blue',
+          backgroundColor: "blue",
           padding: 15,
           borderRadius: 10,
         }}
         onPress={handleLogin}
       >
-        <Text style={{ color: 'white', textAlign: 'center', fontSize: 18 }}>
+        <Text style={{ color: "white", textAlign: "center", fontSize: 18 }}>
           התחבר
         </Text>
       </TouchableOpacity>
-      <Text style={{ color: 'red', textAlign: 'center' }}>
-  {error}
-</Text>
+      <Text style={{ color: "red", textAlign: "center" }}>{error}</Text>
     </View>
   );
 }
