@@ -60,12 +60,12 @@ export default function Index() {
     const date = now.toLocaleDateString();
     const time = now.toLocaleTimeString();
 
-    const newRecord: RecordItem = {
-      type,
-      text: `${type} בתאריך ${date} בשעה ${time}`,
-      latitude,
-      longitude,
-    };
+    // const newRecord: RecordItem = {
+    //   type,
+    //   text: `${type} בתאריך ${date} בשעה ${time}`,
+    //   latitude,
+    //   longitude,
+    // };
     try {
       const response = await fetch(
         "http://10.0.0.3:5146/api/attendance/check",
@@ -91,15 +91,16 @@ export default function Index() {
       setMessage("אין חיבור לשרת");
       return;
     }
-    const updatedRecords = [newRecord, ...records];
 
-    setRecords(updatedRecords);
+    // const updatedRecords = [newRecord, ...records];
 
-    // שמירה במכשיר
-    await AsyncStorage.setItem("records", JSON.stringify(updatedRecords));
+    // setRecords(updatedRecords);
+
+    // // שמירה במכשיר
+    // await AsyncStorage.setItem("records", JSON.stringify(updatedRecords));
     setMessage(
       `${type} נשמרה בהצלחה בתאריך ${date} בשעה ${time}
-מיקום: ${latitude}, ${longitude}`,
+    מיקום: ${latitude}, ${longitude}`,
     );
   };
   const handleLogout = async () => {
