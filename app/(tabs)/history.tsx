@@ -22,9 +22,19 @@ export default function History() {
         if (!storedUserId) {
           return;
         }
+        const token = await AsyncStorage.getItem("token");
+
+        if (!token) {
+          return;
+        }
 
         const response = await fetch(
           `http://10.0.0.3:5146/api/attendance/history/${storedUserId}`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          },
         );
 
         const data = await response.json();

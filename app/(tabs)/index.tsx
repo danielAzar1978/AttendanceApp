@@ -54,8 +54,20 @@ export default function Index() {
 
     const userId = parseInt(storedUserId);
 
-    let latitude = 31.7683;
-    let longitude = 35.2137;
+    let latitude = 0;
+    let longitude = 0;
+
+    try {
+      const location = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.High,
+      });
+
+      latitude = location.coords.latitude;
+      longitude = location.coords.longitude;
+    } catch (error) {
+      setMessage("לא הצלחתי לקבל מיקום");
+      return;
+    }
     const now = new Date();
     const date = now.toLocaleDateString();
     const time = now.toLocaleTimeString();
@@ -66,6 +78,12 @@ export default function Index() {
     //   latitude,
     //   longitude,
     // };
+    const token = await AsyncStorage.getItem("token");
+
+    if (!token) {
+      setMessage("אין token");
+      return;
+    }
     try {
       const response = await fetch(
         "http://10.0.0.3:5146/api/attendance/check",
@@ -73,6 +91,7 @@ export default function Index() {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({
             userId,

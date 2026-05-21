@@ -23,12 +23,14 @@ export default function Login() {
 
       if (response.ok) {
         const data = await response.json();
+        // console.log(data.token);
 
         setError("");
 
         await AsyncStorage.setItem("isLoggedIn", "true");
         await AsyncStorage.setItem("name", data.name);
         await AsyncStorage.setItem("userId", data.userId.toString());
+        await AsyncStorage.setItem("token", data.token);
 
         router.replace("/(tabs)");
       } else {
