@@ -3,18 +3,13 @@ import * as Location from "expo-location";
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
 import { Text, TouchableOpacity, View } from "react-native";
-
-type RecordItem = {
-  type: string;
-  text: string;
-  latitude: number;
-  longitude: number;
-};
+import { MaterialIcons } from "@expo/vector-icons";
 
 export default function Index() {
-  const [records, setRecords] = useState<RecordItem[]>([]);
   const [message, setMessage] = useState("");
   const [name, setName] = useState("");
+  const [lastCheck, setLastCheck] = useState("");
+
   useEffect(() => {
     const loadUser = async () => {
       const storedName = await AsyncStorage.getItem("name");
@@ -26,17 +21,6 @@ export default function Index() {
 
     loadUser();
   }, []);
-  useEffect(() => {
-    const loadRecords = async () => {
-      const stored = await AsyncStorage.getItem("records");
-
-      if (stored) {
-        setRecords(JSON.parse(stored));
-      }
-    };
-
-    loadRecords();
-  }, []);
 
   const handlePress = async (type: string) => {
     const { status } = await Location.requestForegroundPermissionsAsync();
@@ -45,6 +29,7 @@ export default function Index() {
       setMessage("אין הרשאת מיקום");
       return;
     }
+
     const storedUserId = await AsyncStorage.getItem("userId");
 
     if (!storedUserId) {
@@ -68,22 +53,18 @@ export default function Index() {
       setMessage("לא הצלחתי לקבל מיקום");
       return;
     }
-    const now = new Date();
-    const date = now.toLocaleDateString();
-    const time = now.toLocaleTimeString();
 
-    // const newRecord: RecordItem = {
-    //   type,
-    //   text: `${type} בתאריך ${date} בשעה ${time}`,
-    //   latitude,
-    //   longitude,
-    // };
+    const now = new Date();
+    const date = now.toLocaleDateString("he-IL");
+    const time = now.toLocaleTimeString("he-IL");
+
     const token = await AsyncStorage.getItem("token");
 
     if (!token) {
       setMessage("אין token");
       return;
     }
+
     try {
       const response = await fetch(
         "http://10.0.0.3:5146/api/attendance/check",
@@ -103,69 +84,232 @@ export default function Index() {
       );
 
       if (!response.ok) {
-        setMessage("שגיאה בשמירה לשרת");
+        const errorData = await response.json();
+        setMessage(errorData.message || "שגיאה בשמירה לשרת");
         return;
       }
+
+      const data = await response.json();
+      const locationName = data.locationName || "מיקום מאושר";
+
+      //       setMessage(
+      //         `✅ ${type} נשמרה בהצלחה
+      // בתאריך ${date} בשעה ${time}
+      // 📍 ${locationName}`,
+      //       );
+
+      setLastCheck(`${type} • ${time} • ${locationName}`);
     } catch (error) {
       setMessage("אין חיבור לשרת");
-      return;
     }
-
-    // const updatedRecords = [newRecord, ...records];
-
-    // setRecords(updatedRecords);
-
-    // // שמירה במכשיר
-    // await AsyncStorage.setItem("records", JSON.stringify(updatedRecords));
-    setMessage(
-      `${type} נשמרה בהצלחה בתאריך ${date} בשעה ${time}
-    מיקום: ${latitude}, ${longitude}`,
-    );
   };
+
   const handleLogout = async () => {
     await AsyncStorage.removeItem("isLoggedIn");
+    await AsyncStorage.removeItem("token");
 
     router.replace("/login");
   };
 
   return (
-    <View style={{ flex: 1, padding: 20, gap: 12 }}>
-      <Text style={{ fontSize: 24, textAlign: "center", fontWeight: "bold" }}>
+    <View
+      style={{
+        flex: 1,
+        backgroundColor: "#f5f7fb",
+        padding: 20,
+      }}
+    >
+      <Text
+        style={{
+          fontSize: 34,
+          textAlign: "center",
+          fontWeight: "bold",
+          marginTop: 35,
+          color: "#111827",
+        }}
+      >
         החתמת נוכחות
       </Text>
-      <Text style={{ textAlign: "center", fontSize: 16 }}>שלום {name}</Text>
 
-      <TouchableOpacity
-        style={{ backgroundColor: "green", padding: 15, borderRadius: 10 }}
-        onPress={() => handlePress("כניסה")}
+      <Text
+        style={{
+          textAlign: "center",
+          fontSize: 18,
+          marginTop: 8,
+          color: "#374151",
+        }}
       >
-        <Text style={{ color: "white", textAlign: "center", fontSize: 18 }}>
-          כניסה
-        </Text>
-      </TouchableOpacity>
+        שלום {name} 👋
+      </Text>
 
-      <TouchableOpacity
-        style={{ backgroundColor: "red", padding: 15, borderRadius: 10 }}
-        onPress={() => handlePress("יציאה")}
+      <Text
+        style={{
+          textAlign: "center",
+          fontSize: 20,
+          color: "#6b7280",
+          marginTop: 18,
+        }}
       >
-        <Text style={{ color: "white", textAlign: "center", fontSize: 18 }}>
-          יציאה
-        </Text>
-      </TouchableOpacity>
+        {new Date().toLocaleDateString("he-IL")}
+      </Text>
 
-      <TouchableOpacity
-        style={{ backgroundColor: "blue", padding: 15, borderRadius: 10 }}
-        onPress={() => router.push("/history")}
+      <Text
+        style={{
+          textAlign: "center",
+          fontSize: 24,
+          color: "#111827",
+          marginTop: 6,
+          marginBottom: 24,
+        }}
       >
-        <Text style={{ color: "white", textAlign: "center" }}>להיסטוריה</Text>
-      </TouchableOpacity>
-      <Text style={{ textAlign: "center", fontSize: 16 }}>{message}</Text>
+        {new Date().toLocaleTimeString("he-IL")}
+      </Text>
+
+      <View
+        style={{
+          backgroundColor: "white",
+          borderRadius: 24,
+          padding: 14,
+          shadowColor: "#000",
+          shadowOpacity: 0.08,
+          shadowRadius: 12,
+          elevation: 4,
+        }}
+      >
+        <View style={{ flexDirection: "row", gap: 14 }}>
+          <TouchableOpacity
+            style={{
+              flex: 1,
+              backgroundColor: "#16a34a",
+              paddingVertical: 50,
+              borderRadius: 22,
+              alignItems: "center",
+            }}
+            onPress={() => handlePress("כניסה")}
+          >
+            <MaterialIcons name="login" size={42} color="white" />
+            <Text
+              style={{
+                color: "white",
+                fontSize: 30,
+                fontWeight: "bold",
+                marginTop: 8,
+              }}
+            >
+              כניסה
+            </Text>
+            <Text style={{ color: "white", fontSize: 14, marginTop: 6 }}>
+              החתם כניסה לעבודה
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={{
+              flex: 1,
+              backgroundColor: "#dc2626",
+              paddingVertical: 50,
+              borderRadius: 22,
+              alignItems: "center",
+            }}
+            onPress={() => handlePress("יציאה")}
+          >
+            <MaterialIcons name="logout" size={42} color="white" />
+            <Text
+              style={{
+                color: "white",
+                fontSize: 30,
+                fontWeight: "bold",
+                marginTop: 8,
+              }}
+            >
+              יציאה
+            </Text>
+            <Text style={{ color: "white", fontSize: 14, marginTop: 6 }}>
+              החתם יציאה מהעבודה
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      {lastCheck ? (
+        <View
+          style={{
+            backgroundColor: "white",
+            padding: 18,
+            borderRadius: 20,
+            marginTop: 16,
+            borderWidth: 1,
+            borderColor: "#e5e7eb",
+            shadowColor: "#000",
+            shadowOpacity: 0.06,
+            shadowRadius: 10,
+            elevation: 3,
+          }}
+        >
+          <Text
+            style={{
+              fontWeight: "bold",
+              fontSize: 20,
+              marginBottom: 8,
+              color: "#15803d",
+              textAlign: "right",
+            }}
+          >
+            ✅ החתמה אחרונה
+          </Text>
+
+          <Text
+            style={{
+              fontSize: 16,
+              color: "#374151",
+              textAlign: "right",
+              lineHeight: 24,
+            }}
+          >
+            {lastCheck}
+          </Text>
+        </View>
+      ) : null}
+
+      {message ? (
+        <View
+          style={{
+            backgroundColor: "white",
+            padding: 18,
+            borderRadius: 20,
+            borderWidth: 1,
+            borderColor: "#e5e7eb",
+            marginTop: 12,
+          }}
+        >
+          <Text
+            style={{
+              textAlign: "center",
+              fontSize: 16,
+              lineHeight: 25,
+              color: "#111827",
+            }}
+          >
+            {message}
+          </Text>
+        </View>
+      ) : null}
+
+      <View style={{ flex: 1 }} />
 
       <TouchableOpacity
-        style={{ backgroundColor: "black", padding: 15, borderRadius: 10 }}
         onPress={handleLogout}
+        style={{
+          alignSelf: "flex-start",
+          paddingVertical: 10,
+          paddingHorizontal: 8,
+          marginBottom: 12,
+        }}
       >
-        <Text style={{ color: "white", textAlign: "center" }}>התנתק</Text>
+        <MaterialIcons name="logout" size={22} color="#6b7280" />
+        <Text style={{ color: "#6b7280", fontSize: 14, marginLeft: 4 }}>
+          התנתק
+        </Text>
       </TouchableOpacity>
     </View>
   );
