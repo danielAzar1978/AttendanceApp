@@ -1,50 +1,154 @@
-# Welcome to your Expo app 👋
+# Attendance Management System
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Last Updated: 2026-06-13
+Version: 0.6
 
-## Get started
+## Overview
 
-1. Install dependencies
+Attendance Management System is a GPS-based employee attendance solution.
 
-   ```bash
-   npm install
-   ```
+The system consists of:
 
-2. Start the app
+- ASP.NET Core MVC Manager Dashboard
+- ASP.NET Core Web API
+- SQL Server Database
+- React Native Mobile Application
 
-   ```bash
-   npx expo start
-   ```
+Managers can manage employees, locations, permissions and attendance records.
 
-In the output, you'll find options to open the app in a
+Employees use the mobile application to perform Check-In and Check-Out operations.
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+---
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+## Technologies
 
-## Get a fresh project
+### Backend
 
-When you're ready, run:
+- ASP.NET Core
+- Entity Framework Core
+- SQL Server
+- JWT Authentication
+- Cookie Authentication
+
+### Mobile
+
+- React Native
+- Expo
+- GPS / Location Services
+
+### External Services
+
+- Google Maps Geocoding API
+- Google Maps Geocoding API
+- Google Maps JavaScript API
+- Bootstrap 5
+
+---
+
+## Features
+
+- Mobile offline attendance queue
+- Pending attendance records saved locally when server is unavailable
+- Attendance time is captured on the mobile device and sent to the server
+- Mobile UI improvements for login, check-in/check-out and attendance history
+
+### Employee Management
+
+- Create Employee
+- Edit Employee
+- View Employee Details
+- Activate / Deactivate Employee
+
+### Location Management
+
+- Create Location
+- Edit Location
+- Activate / Deactivate Location
+
+### Attendance Management
+
+- Check-In
+- Check-Out
+- GPS Validation
+- Address Validation
+- Attendance History
+- Monthly Attendance View
+
+* Bootstrap-based Manager Dashboard UI
+* Location creation from the dashboard
+* Google Maps preview before saving a location
+* Address geocoding using Google Maps API
+
+### Permissions
+
+- Allow attendance from anywhere
+- Restrict attendance to assigned locations
+
+---
+
+## Database Tables
+
+### Users
+
+Stores employee information.
+
+### WorkLocations
+
+Stores work locations and allowed GPS areas.
+
+### UserWorkLocations
+
+Links employees to work locations.
+
+### AttendanceRecords
+
+Stores attendance transactions.
+
+---
+
+## Authentication
+
+### Mobile Application
+
+Uses JWT Authentication.
+
+### Manager Dashboard
+
+Uses Cookie Authentication.
+
+---
+
+## Running the Project
+
+1. Update connection string in appsettings.json
+2. Run migrations
 
 ```bash
-npm run reset-project
+dotnet ef database update
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+3. Run project
 
-## Learn more
+```bash
+dotnet run
+```
 
-To learn more about developing your project with Expo, look at the following resources:
+4. Open dashboard
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+```text
+https://localhost:xxxx
+```
 
-## Join the community
+---
 
-Join our community of developers creating universal apps.
+## Current Status
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+The system currently supports:
+
+- User Management
+- Location Management
+- GPS Attendance
+- Location Assignment
+- Attendance History
+
+Future development will include reporting, role management and advanced dashboard features.
