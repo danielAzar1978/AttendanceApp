@@ -5,6 +5,14 @@ import { useEffect, useState } from "react";
 import { Text, TouchableOpacity, View } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 
+type PendingAttendance = {
+  userId: number;
+  type: string;
+  latitude: number;
+  longitude: number;
+  attendanceTime: string;
+};
+
 export default function Index() {
   const [message, setMessage] = useState("");
   const [name, setName] = useState("");
@@ -21,6 +29,16 @@ export default function Index() {
 
     loadUser();
   }, []);
+
+  const savePendingAttendance = async (attendance: PendingAttendance) => {
+    const stored = await AsyncStorage.getItem("pendingAttendances");
+
+    const pending: PendingAttendance[] = stored ? JSON.parse(stored) : [];
+
+    pending.push(attendance);
+
+    await AsyncStorage.setItem("pendingAttendances", JSON.stringify(pending));
+  };
 
   const handlePress = async (type: string) => {
     const { status } = await Location.requestForegroundPermissionsAsync();
@@ -65,6 +83,14 @@ export default function Index() {
       return;
     }
 
+    const attendanceToSend: PendingAttendance = {
+      userId,
+      type,
+      latitude,
+      longitude,
+      attendanceTime: now.toISOString(),
+    };
+
     try {
       const response = await fetch(
         "http://10.0.0.3:5146/api/attendance/check",
@@ -74,12 +100,7 @@ export default function Index() {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
           },
-          body: JSON.stringify({
-            userId,
-            type,
-            latitude,
-            longitude,
-          }),
+          body: JSON.stringify(attendanceToSend),
         },
       );
 
@@ -92,15 +113,20 @@ export default function Index() {
       const data = await response.json();
       const locationName = data.locationName || "מיקום מאושר";
 
-      //       setMessage(
-      //         `✅ ${type} נשמרה בהצלחה
-      // בתאריך ${date} בשעה ${time}
-      // 📍 ${locationName}`,
-      //       );
-
       setLastCheck(`${type} • ${time} • ${locationName}`);
-    } catch (error) {
-      setMessage("אין חיבור לשרת");
+
+      setMessage(
+        `✅ ${type} נשמרה בהצלחה
+בתאריך ${date} בשעה ${time}
+📍 ${locationName}`,
+      );
+    } catch {
+      await savePendingAttendance(attendanceToSend);
+
+      setMessage(
+        `⚠️ אין חיבור לשרת
+ההחתמה נשמרה במכשיר ותישלח אוטומטית בהמשך`,
+      );
     }
   };
 
@@ -301,6 +327,8 @@ export default function Index() {
         onPress={handleLogout}
         style={{
           alignSelf: "flex-start",
+          flexDirection: "row",
+          alignItems: "center",
           paddingVertical: 10,
           paddingHorizontal: 8,
           marginBottom: 12,
