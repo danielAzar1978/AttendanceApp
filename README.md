@@ -52,6 +52,35 @@ Employees use the mobile application to perform Check-In and Check-Out operation
 - Attendance time is captured on the mobile device and sent to the server
 - Mobile UI improvements for login, check-in/check-out and attendance history
 
+## Mobile Features
+
+- Offline attendance queue using AsyncStorage
+- Automatic synchronization when the app regains connectivity
+- Retry of pending attendance records when returning to the main screen
+- Duplicate prevention using ClientRecordId
+- Business validation for duplicate check-in/check-out actions
+- Attendance time is preserved from the mobile device
+
+### Offline Attendance
+
+If the API is unavailable, the mobile app stores the attendance record locally.
+
+Each pending record includes:
+
+- ClientRecordId
+- UserId
+- Type
+- Latitude
+- Longitude
+- AttendanceTime
+
+Pending records are sent automatically when:
+
+- The app returns to the main screen
+- Network connectivity is restored
+
+The original attendance time is preserved.
+
 ### Employee Management
 
 - Create Employee

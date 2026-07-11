@@ -1,11 +1,15 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Location from "expo-location";
-import { router } from "expo-router";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { router, useFocusEffect } from "expo-router";
 import { Text, TouchableOpacity, View } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
+import "react-native-get-random-values";
+import { v4 as uuidv4 } from "uuid";
+import NetInfo from "@react-native-community/netinfo";
 
 type PendingAttendance = {
+  clientRecordId: string;
   userId: number;
   type: string;
   latitude: number;
@@ -17,6 +21,24 @@ export default function Index() {
   const [message, setMessage] = useState("");
   const [name, setName] = useState("");
   const [lastCheck, setLastCheck] = useState("");
+  const [syncMessage, setSyncMessage] = useState("");
+  const [pendingCount, setPendingCount] = useState(0);
+
+  const showMessage = (text: string) => {
+    setMessage(text);
+
+    setTimeout(() => {
+      setMessage("");
+    }, 10000);
+  };
+
+  const showSyncMessage = (text: string) => {
+    setSyncMessage(text);
+
+    setTimeout(() => {
+      setSyncMessage("");
+    }, 10000);
+  };
 
   useEffect(() => {
     const loadUser = async () => {
@@ -28,6 +50,25 @@ export default function Index() {
     };
 
     loadUser();
+    updatePendingCount();
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      syncPendingAttendances();
+    }, []),
+  );
+
+  useEffect(() => {
+    const unsubscribe = NetInfo.addEventListener((state) => {
+      if (state.isConnected) {
+        syncPendingAttendances();
+      }
+    });
+
+    return () => {
+      unsubscribe();
+    };
   }, []);
 
   const savePendingAttendance = async (attendance: PendingAttendance) => {
@@ -38,20 +79,100 @@ export default function Index() {
     pending.push(attendance);
 
     await AsyncStorage.setItem("pendingAttendances", JSON.stringify(pending));
+    await updatePendingCount();
+  };
+
+  const updatePendingCount = async () => {
+    const stored = await AsyncStorage.getItem("pendingAttendances");
+    const pending: PendingAttendance[] = stored ? JSON.parse(stored) : [];
+
+    setPendingCount(pending.length);
+  };
+
+  const sendPendingAttendances = async () => {
+    const stored = await AsyncStorage.getItem("pendingAttendances");
+
+    if (!stored) {
+      return;
+    }
+
+    const pending: PendingAttendance[] = JSON.parse(stored);
+
+    if (pending.length === 0) {
+      return;
+    }
+
+    const token = await AsyncStorage.getItem("token");
+    console.log("token exists:", !!token);
+
+    if (!token) {
+      return;
+    }
+
+    const remaining: PendingAttendance[] = [];
+    let syncedCount = 0;
+
+    for (const attendance of pending) {
+      try {
+        const response = await fetch(
+          "http://10.0.0.3:5146/api/attendance/check",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify(attendance),
+          },
+        );
+
+        const responseData = await response.json();
+
+        if (!response.ok) {
+          console.log("Pending rejected:", response.status, responseData);
+
+          if (response.status >= 500) {
+            // תקלה זמנית בשרת — נשאיר לשליחה חוזרת
+            remaining.push(attendance);
+          } else {
+            // שגיאה עסקית או מיקום לא מורשה — לא ננסה שוב לנצח
+            showMessage(
+              responseData.message || "החתמה ממתינה נדחתה על ידי השרת",
+            );
+          }
+        } else {
+          syncedCount++;
+        }
+      } catch {
+        remaining.push(attendance);
+      }
+    }
+    await AsyncStorage.setItem("pendingAttendances", JSON.stringify(remaining));
+
+    await updatePendingCount();
+
+    if (syncedCount === 1) {
+      showSyncMessage("✅ החתמה נשלחה בהצלחה");
+    } else if (syncedCount > 1) {
+      showSyncMessage(`✅ ${syncedCount} החתמות נשלחו בהצלחה`);
+    }
+  };
+  const syncPendingAttendances = async () => {
+    await sendPendingAttendances();
   };
 
   const handlePress = async (type: string) => {
     const { status } = await Location.requestForegroundPermissionsAsync();
 
     if (status !== "granted") {
-      setMessage("אין הרשאת מיקום");
+      showMessage("אין הרשאת מיקום");
       return;
     }
 
     const storedUserId = await AsyncStorage.getItem("userId");
 
     if (!storedUserId) {
-      setMessage("משתמש לא מחובר");
+      showMessage("משתמש לא מחובר");
       return;
     }
 
@@ -68,7 +189,7 @@ export default function Index() {
       latitude = location.coords.latitude;
       longitude = location.coords.longitude;
     } catch (error) {
-      setMessage("לא הצלחתי לקבל מיקום");
+      showMessage("לא הצלחתי לקבל מיקום");
       return;
     }
 
@@ -79,11 +200,14 @@ export default function Index() {
     const token = await AsyncStorage.getItem("token");
 
     if (!token) {
-      setMessage("אין token");
+      showMessage("אין token");
       return;
     }
 
+    const clientRecordId = uuidv4();
+
     const attendanceToSend: PendingAttendance = {
+      clientRecordId,
       userId,
       type,
       latitude,
@@ -103,19 +227,21 @@ export default function Index() {
           body: JSON.stringify(attendanceToSend),
         },
       );
+      const data = await response.json();
+
+      console.log("Attendance response status:", response.status);
+      console.log("Attendance response body:", data);
 
       if (!response.ok) {
-        const errorData = await response.json();
-        setMessage(errorData.message || "שגיאה בשמירה לשרת");
+        showMessage(data.message || "שגיאה בשמירה לשרת");
         return;
       }
 
-      const data = await response.json();
       const locationName = data.locationName || "מיקום מאושר";
 
       setLastCheck(`${type} • ${time} • ${locationName}`);
 
-      setMessage(
+      showMessage(
         `✅ ${type} נשמרה בהצלחה
 בתאריך ${date} בשעה ${time}
 📍 ${locationName}`,
@@ -123,7 +249,7 @@ export default function Index() {
     } catch {
       await savePendingAttendance(attendanceToSend);
 
-      setMessage(
+      showMessage(
         `⚠️ אין חיבור לשרת
 ההחתמה נשמרה במכשיר ותישלח אוטומטית בהמשך`,
       );
@@ -167,7 +293,53 @@ export default function Index() {
       >
         שלום {name} 👋
       </Text>
-
+      <View
+        style={{
+          backgroundColor: pendingCount > 0 ? "#fff7ed" : "#ecfdf5",
+          borderWidth: 1,
+          borderColor: pendingCount > 0 ? "#fdba74" : "#86efac",
+          borderRadius: 14,
+          padding: 12,
+          marginTop: 12,
+        }}
+      >
+        <Text
+          style={{
+            textAlign: "center",
+            fontWeight: "bold",
+            color: pendingCount > 0 ? "#c2410c" : "#15803d",
+            fontSize: 15,
+          }}
+        >
+          {pendingCount > 0
+            ? `🟠 ${pendingCount} ${
+                pendingCount === 1 ? "החתמה ממתינה" : "החתמות ממתינות"
+              } לשליחה`
+            : "🟢 כל ההחתמות נשלחו לשרת"}
+        </Text>
+      </View>
+      {syncMessage ? (
+        <View
+          style={{
+            backgroundColor: "#eff6ff",
+            borderWidth: 1,
+            borderColor: "#93c5fd",
+            borderRadius: 14,
+            padding: 12,
+            marginTop: 10,
+          }}
+        >
+          <Text
+            style={{
+              textAlign: "center",
+              color: "#1d4ed8",
+              fontWeight: "600",
+            }}
+          >
+            {syncMessage}
+          </Text>
+        </View>
+      ) : null}
       <Text
         style={{
           textAlign: "center",
